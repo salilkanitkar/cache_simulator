@@ -1,0 +1,62 @@
+===== Simulator configuration =====
+BLOCKSIZE:             16
+L1_SIZE:               1024
+L1_ASSOC:              2
+L1_PREF_N:             0
+L1_PREF_M:             0
+L2_SIZE:               0
+L2_ASSOC:              0
+L2_PREF_N:             0
+L2_PREF_M:             0
+trace_file:            gcc_trace.txt
+===== L1 contents =====
+Set	0:	20028d D	  20018a  	  
+Set	1:	20028d D	  20028e D	  
+Set	2:	2001c1 D	  200153 D	  
+Set	3:	20028d D	  20013b  	  
+Set	4:	200223 D	  20028d  	  
+Set	5:	2001c1  	  200149  	  
+Set	6:	20028d D	  20028e D	  
+Set	7:	20018a  	  2001ac D	  
+Set	8:	20018f D	  20018a  	  
+Set	9:	20018f D	  2000f9  	  
+Set	10:	20017a  	  2000fa  	  
+Set	11:	200009  	  20018a  	  
+Set	12:	200009  	  20028d D	  
+Set	13:	200009  	  2000f9  	  
+Set	14:	200009  	  2001ac  	  
+Set	15:	200009  	  2001b2 D	  
+Set	16:	200009  	  3d819c D	  
+Set	17:	200009  	  20017b D	  
+Set	18:	200009  	  2000fa  	  
+Set	19:	200009  	  2001b2 D	  
+Set	20:	200009  	  2000fa  	  
+Set	21:	200009  	  200214  	  
+Set	22:	200009  	  20023f  	  
+Set	23:	2001ab  	  20013a  	  
+Set	24:	20018f D	  2001f2  	  
+Set	25:	2001aa  	  2001ab  	  
+Set	26:	20028d D	  20018d D	  
+Set	27:	20028d D	  20018d D	  
+Set	28:	20013a  	  20028d D	  
+Set	29:	20013a  	  20018d D	  
+Set	30:	20028c D	  20018d D	  
+Set	31:	2001f8 D	  20028c D	  
+===== Simulation results (raw) =====
+a. number of L1 reads:                 63640
+b. number of L1 read misses:           8322
+c. number of L1 writes:                36360
+d. number of L1 write misses:          7680
+e. L1 miss rate:                       0.160020
+f. number of L1 writebacks:            8696
+g. number of L1 prefetches:            0
+h. number of L2 reads that did not originate from L1 prefetches:	0
+i. number of L2 read misses that did not originate from L1 prefetches:	0
+j. number of L2 reads that originated from L1 prefetches:		0
+k. number of L2 read misses that originated from L1 prefetches:	0
+l. number of L2 writes:		            0
+m. number of L2 write misses:          0
+n. L2 miss rate:                      0
+o. number of L2 writebacks:            0
+p. number of L2 prefetches:	          0
+q. total memory traffic:             24698

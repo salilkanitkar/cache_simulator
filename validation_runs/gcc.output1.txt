@@ -1,0 +1,94 @@
+===== Simulator configuration =====
+BLOCKSIZE:             16
+L1_SIZE:               1024
+L1_ASSOC:              1
+L1_PREF_N:             0
+L1_PREF_M:             0
+L2_SIZE:               0
+L2_ASSOC:              0
+L2_PREF_N:             0
+L2_PREF_M:             0
+trace_file:            gcc_trace.txt
+===== L1 contents =====
+Set	0:	1000c5  	  
+Set	1:	100147 D	  
+Set	2:	100147 D	  
+Set	3:	100147 D	  
+Set	4:	1000c5  	  
+Set	5:	1000c5  	  
+Set	6:	100147 D	  
+Set	7:	1000c5  	  
+Set	8:	1000c5  	  
+Set	9:	1000bd D	  
+Set	10:	1000bd  	  
+Set	11:	1000c5  	  
+Set	12:	1000d9 D	  
+Set	13:	1000c5  	  
+Set	14:	1000d6  	  
+Set	15:	1000d9 D	  
+Set	16:	1ec0ce D	  
+Set	17:	10007d  	  
+Set	18:	10007d  	  
+Set	19:	1000d9 D	  
+Set	20:	10007d  	  
+Set	21:	10010a  	  
+Set	22:	1000d5  	  
+Set	23:	10009d  	  
+Set	24:	1000f9  	  
+Set	25:	1000d5  	  
+Set	26:	100146 D	  
+Set	27:	10009d  	  
+Set	28:	10009d  	  
+Set	29:	10009d  	  
+Set	30:	100146 D	  
+Set	31:	1000fc D	  
+Set	32:	100146 D	  
+Set	33:	100146 D	  
+Set	34:	1000e0 D	  
+Set	35:	100146 D	  
+Set	36:	100111 D	  
+Set	37:	1000e0  	  
+Set	38:	100146 D	  
+Set	39:	100146 D	  
+Set	40:	1000c7 D	  
+Set	41:	1000c7  	  
+Set	42:	100146 D	  
+Set	43:	100004  	  
+Set	44:	100004  	  
+Set	45:	100004  	  
+Set	46:	100004  	  
+Set	47:	100004  	  
+Set	48:	100004  	  
+Set	49:	100004  	  
+Set	50:	100004  	  
+Set	51:	100004  	  
+Set	52:	100004  	  
+Set	53:	100004  	  
+Set	54:	100004  	  
+Set	55:	1000d5  	  
+Set	56:	1000c7 D	  
+Set	57:	1000d5  	  
+Set	58:	100146 D	  
+Set	59:	100146 D	  
+Set	60:	100146 D	  
+Set	61:	1000c6 D	  
+Set	62:	1000c6 D	  
+Set	63:	1000c6 D	  
+===== Simulation results (raw) =====
+a. number of L1 reads:                 63640
+b. number of L1 read misses:           10728
+c. number of L1 writes:                36360
+d. number of L1 write misses:          8493
+e. L1 miss rate:                       0.192210
+f. number of L1 writebacks:            9802
+g. number of L1 prefetches:            0
+h. number of L2 reads that did not originate from L1 prefetches:	0
+i. number of L2 read misses that did not originate from L1 prefetches:	0
+j. number of L2 reads that originated from L1 prefetches:		0
+k. number of L2 read misses that originated from L1 prefetches:	0
+l. number of L2 writes:		            0
+m. number of L2 write misses:          0
+n. L2 miss rate:                      0
+o. number of L2 writebacks:            0
+p. number of L2 prefetches:	          0
+q. total memory traffic:             29023

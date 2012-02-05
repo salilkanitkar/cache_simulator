@@ -1,0 +1,16 @@
+Implementation of flexible cache and memory hierarchy simulator.
+
+Problem Definition:
+Design a generic cache module that can be used at any level in a memory hierarchy. 
+So it can instantiated as L1 cache, L2 cache etc.
+Cache should be configurable in terms of supporting any cache size, associativity and block size.
+
+Specification of Simulator:
+The simulator must accept 10 command line arguments as shown below - 
+sim_cache <BLOCKSIZE> 
+          <L1_SIZE> <L1_ASSOC> <L1_PREF_N> <L1_PREF_M>
+	  <L2_Size> <L2_ASSOC> <L2_PREF_N> <L2_PREF_M>
+	  <trace_file>
+
+AUthor: Salil Kanitkar (sskanitk@ncsu.edu)
+

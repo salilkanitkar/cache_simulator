@@ -25,6 +25,9 @@ void print_params();
 
 mem_op_t mem_op;
 
+cache_t L1_cache;
+cache_t L2_cache;
+
 int main(int argc, char *argv[])
 {
 
@@ -39,6 +42,18 @@ int main(int argc, char *argv[])
 	}
 
 	print_params();
+
+	L1_cache.config.cache_level = L1_LEVEL;
+	set_cache_params(&L1_cache);
+	allocate_cache(&L1_cache);
+	print_cache(&L1_cache);
+
+	L2_cache.config.cache_level = L2_LEVEL;
+	if (L2_size) {
+		set_cache_params(&L2_cache);
+		allocate_cache(&L2_cache);
+		print_cache(&L2_cache);
+	}
 
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
 

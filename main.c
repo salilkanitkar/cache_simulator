@@ -30,6 +30,7 @@ cache_t L2_cache;
 
 int main(int argc, char *argv[])
 {
+	unsigned int opnum=0;
 
 	if (argc != 11) {
 		printf("Usage:\n./sim_cache <BLOCKSIZE>\n\t<L1_SIZE> <L1_ASSOC> <L1_PREF_N> <L1_PREF_M>\n\t<L2_SIZE> <L2_ASSOC> <L2_PREF_N> <L2_PREF_M>\n\t<tracefile>\n");
@@ -46,13 +47,17 @@ int main(int argc, char *argv[])
 	L1_cache.config.cache_level = L1_LEVEL;
 	set_cache_params(&L1_cache);
 	allocate_cache(&L1_cache);
+#ifdef DEBUG_FLAG
 	print_cache(&L1_cache);
+#endif
 
 	L2_cache.config.cache_level = L2_LEVEL;
 	if (L2_size) {
 		set_cache_params(&L2_cache);
 		allocate_cache(&L2_cache);
+#ifdef DEBUG_FLAG
 		print_cache(&L2_cache);
+#endif
 	}
 
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
@@ -61,7 +66,27 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_FLAG
 		printf("%c %x\n", mem_op.opcode, mem_op.addr);
 #endif
+		opnum += 1;
+
+		if (mem_op.opcode == 'r') {
+			if (L2_size) {
+				handle_read_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
+			} else {
+				handle_read_request(&L1_cache, opnum, mem_op.addr, NULL);
+			}
+		} else if (mem_op.opcode == 'w') {
+			if (L2_size) {
+				handle_write_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
+			} else {
+				handle_write_request(&L1_cache, opnum, mem_op.addr, NULL);
+			}
+		}
+
 	}
+
+	print_cache(&L1_cache);
+	if (L2_size)
+		print_cache(&L2_cache);
 
 	return 0;
 

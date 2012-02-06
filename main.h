@@ -51,6 +51,7 @@ typedef struct _cache_block_t {
 	int dirty_bit;
 	int lru_counter;
 	unsigned int tag;
+	unsigned int memblock_addr;
 }cache_block_t;
 
 typedef struct _cache_set_t {
@@ -93,3 +94,11 @@ typedef struct _sim_res_t {
 }sim_res_t;
 
 extern sim_res_t sim_res;
+
+extern void handle_read_request(cache_t *, int , unsigned int , cache_t *);
+extern void handle_write_request(cache_t *, int , unsigned int , cache_t *);
+
+typedef struct _lru_sort_t {
+	int index;
+	int lru_counter;
+}lru_sort_t;

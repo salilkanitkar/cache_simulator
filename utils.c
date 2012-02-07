@@ -126,12 +126,21 @@ void print_cache(cache_t *Cache)
 	}
 }
 
+void copy_block(cache_block_t *dest, cache_block_t *src)
+{
+	dest->valid_bit = src->valid_bit;
+	dest->dirty_bit = src->dirty_bit;
+	dest->lru_counter = src->lru_counter;
+	dest->tag = src->tag;
+	dest->memblock_addr = src->memblock_addr;
+}
+
 /* cache_t *Cache: This argument specifies the Cache that is going to handle this request.
  * opnum: The number of this memory operation
  * mem_addr: The address at which the read request is made.
  * cache_t *next_Cache: If this argument is NULL, it means the next level is Main Memory, otherwise the L2_cache is passed.
  * */
-void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache)
+cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache)
 {
 	unsigned int tag;
 	unsigned int index;
@@ -141,6 +150,8 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 	int i, j;
 	int old_lru_counter, done=0;
 	int max_lru_counter_val, max_lru_counter_val_index;
+
+	cache_block_t retblock;
 
 	/* Extract the memory block address */
 	tmp = mem_addr;
@@ -155,8 +166,10 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 	tmp = mem_addr;
 	tag = (tmp >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
 
-	printf("----------------------------------------\n");
-	printf("# %d : read %x\n", opnum, mem_addr);
+	if (opnum != -1) {
+		printf("----------------------------------------\n");
+		printf("# %d : read %x\n", opnum, mem_addr);
+	}
 	printf("L%c read : %x (tag %x, index %d)\n", Cache->config.cache_level==L1_LEVEL ? '1': '2', memblock_addr, tag, index);
 
 	for (i=0 ; i < Cache->sets[index].assoc ; i++) {
@@ -172,6 +185,7 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 			Cache->sets[index].blocks[i].memblock_addr = memblock_addr;
 			printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 			done = 1;
+			copy_block(&retblock, &Cache->sets[index].blocks[i]);
 			break;
 		}
 	}
@@ -180,6 +194,12 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 		for (i=0 ; i < Cache->sets[index].assoc ; i++) {
 			if (Cache->sets[index].blocks[i].valid_bit == 0) {
 				/* Cache Miss - The first empty block in the required set is found. */
+				printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+				printf("L%c victim: none\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+				if (next_Cache) {
+					retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+					copy_block(&Cache->sets[index].blocks[i], &retblock);
+				}
 				Cache->sets[index].blocks[i].valid_bit = 1;
 				Cache->sets[index].blocks[i].dirty_bit = 0;
 				Cache->sets[index].blocks[i].tag = tag;
@@ -190,9 +210,8 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 						Cache->sets[index].blocks[j].lru_counter += 1;
 				}
 				done = 1;
-				printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
-				printf("L%c victim: none\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+				copy_block(&retblock, &Cache->sets[index].blocks[i]);
 				break;
 			}
 		}
@@ -213,7 +232,17 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 
 		printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		printf("L%c victim: %x (tag %x, index %d, %s)\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, Cache->sets[index].blocks[max_lru_counter_val_index].tag, index, Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit ? "dirty": "clean");
-		printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+
+		if (next_Cache) {
+			if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
+				retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
+				retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+				copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+			} else {
+				retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+				copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+			}
+		}
 
 		Cache->sets[index].blocks[max_lru_counter_val_index].tag = tag;
 		Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr = memblock_addr;
@@ -225,7 +254,13 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
 			if (max_lru_counter_val_index != j && Cache->sets[index].blocks[j].valid_bit == 1)
 				Cache->sets[index].blocks[j].lru_counter += 1;
 		}
+
+		printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+		copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
+		done = 1;
 	}
+
+	return retblock;
 }
 
 /* cache_t *Cache: This argument specifies the Cache that is going to handle this request.
@@ -233,7 +268,7 @@ void handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache
  * mem_addr: The address at which the write request is made.
  * cache_t *next_Cache: If this argument is NULL, it means the next level is Main Memory, otherwise the L2_cache is passed.
  * */
-void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache)
+cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache)
 {
 	unsigned int tag;
 	unsigned int index;
@@ -243,6 +278,8 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 	int i, j;
 	int old_lru_counter, done=0;
 	int max_lru_counter_val, max_lru_counter_val_index;
+
+	cache_block_t retblock;
 
 	/* Extract the memory block address */
 	tmp = mem_addr;
@@ -257,8 +294,10 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 	tmp = mem_addr;
 	tag = (tmp >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
 
-	printf("----------------------------------------\n");
-	printf("# %d : write %x\n", opnum, mem_addr);
+	if (opnum != -1) {
+		printf("----------------------------------------\n");
+		printf("# %d : write %x\n", opnum, mem_addr);
+	}
 	printf("L%c Write : %x  (tag %x, index %d)\n", Cache->config.cache_level==L1_LEVEL ? '1': '2', memblock_addr, tag, index);
 
 	for (i=0 ; i < Cache->sets[index].assoc ; i++) {
@@ -276,6 +315,7 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 			printf("L%c update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 			printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 			done = 1;
+			copy_block(&retblock, &Cache->sets[index].blocks[i]);
 			break;
 		}
 	}
@@ -284,6 +324,12 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 		for (i=0 ; i < Cache->sets[index].assoc ; i++) {
 			if (Cache->sets[index].blocks[i].valid_bit == 0) {
 				/* Cache Miss - The first empty block in the required set is found. */
+				printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+				printf("L%c victim: none\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+                                if (next_Cache) {
+                                        retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+                                        copy_block(&Cache->sets[index].blocks[i], &retblock);
+                                }
 				Cache->sets[index].blocks[i].valid_bit = 1;
 				Cache->sets[index].blocks[i].dirty_bit = 1;
 				Cache->sets[index].blocks[i].tag = tag;
@@ -294,10 +340,9 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 						Cache->sets[index].blocks[j].lru_counter += 1;
 				}
 				done = 1;
-				printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
-				printf("L%c victim: none\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+				copy_block(&retblock, &Cache->sets[index].blocks[i]);
 				break;
 			}
 		}
@@ -318,8 +363,17 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 
 		printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		printf("L%c victim: %x (tag %x, index %d, %s)\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, Cache->sets[index].blocks[max_lru_counter_val_index].tag, index, Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit ? "dirty": "clean");
-		printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
-		printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+
+                if (next_Cache) {
+                        if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
+                                retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
+                                retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+                                copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+                        } else {
+                                retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+                                copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+                        }
+                }
 
 		Cache->sets[index].blocks[max_lru_counter_val_index].tag = tag;
 		Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr = memblock_addr;
@@ -331,6 +385,12 @@ void handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cach
 			if (max_lru_counter_val_index != j && Cache->sets[index].blocks[j].valid_bit == 1)
 				Cache->sets[index].blocks[j].lru_counter += 1;
 		}
+
+		printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+		printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+		copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
+		done = 1;
 	}
 
+	return retblock;
 }

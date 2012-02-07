@@ -95,10 +95,11 @@ typedef struct _sim_res_t {
 
 extern sim_res_t sim_res;
 
-extern void handle_read_request(cache_t *, int , unsigned int , cache_t *);
-extern void handle_write_request(cache_t *, int , unsigned int , cache_t *);
+extern cache_block_t handle_read_request(cache_t *, int , unsigned int , cache_t *);
+extern cache_block_t handle_write_request(cache_t *, int , unsigned int , cache_t *);
 
 typedef struct _lru_sort_t {
 	int index;
 	int lru_counter;
 }lru_sort_t;
+

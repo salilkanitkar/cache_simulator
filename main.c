@@ -31,6 +31,7 @@ cache_t L2_cache;
 int main(int argc, char *argv[])
 {
 	unsigned int opnum=0;
+	cache_block_t retblock;
 
 	if (argc != 11) {
 		printf("Usage:\n./sim_cache <BLOCKSIZE>\n\t<L1_SIZE> <L1_ASSOC> <L1_PREF_N> <L1_PREF_M>\n\t<L2_SIZE> <L2_ASSOC> <L2_PREF_N> <L2_PREF_M>\n\t<tracefile>\n");
@@ -70,15 +71,15 @@ int main(int argc, char *argv[])
 
 		if (mem_op.opcode == 'r') {
 			if (L2_size) {
-				handle_read_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
+				retblock = handle_read_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
 			} else {
-				handle_read_request(&L1_cache, opnum, mem_op.addr, NULL);
+				retblock = handle_read_request(&L1_cache, opnum, mem_op.addr, NULL);
 			}
 		} else if (mem_op.opcode == 'w') {
 			if (L2_size) {
-				handle_write_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
+				retblock = handle_write_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
 			} else {
-				handle_write_request(&L1_cache, opnum, mem_op.addr, NULL);
+				retblock = handle_write_request(&L1_cache, opnum, mem_op.addr, NULL);
 			}
 		}
 

@@ -20,13 +20,17 @@ char trace_file[MAX_FILENAME_LEN];
 FILE *fp_trace=0;
 char trace_str[MAX_TRACESTR_LEN];
 
-int validate_params(char *[]);
-void print_params();
-
 mem_op_t mem_op;
 
 cache_t L1_cache;
 cache_t L2_cache;
+
+sim_res_t sim_res;
+
+int validate_params(char *[]);
+void print_params();
+void initialize_cache_sim_params(sim_res_t *);
+void calculate_and_print_cache_sim_params(sim_res_t *);
 
 int main(int argc, char *argv[])
 {
@@ -61,6 +65,8 @@ int main(int argc, char *argv[])
 #endif
 	}
 
+	initialize_cache_sim_params(&sim_res);
+
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
 
 		sscanf(trace_str, "%c %x\n", &mem_op.opcode, &mem_op.addr);
@@ -88,6 +94,8 @@ int main(int argc, char *argv[])
 	print_cache(&L1_cache);
 	if (L2_size)
 		print_cache(&L2_cache);
+
+	calculate_and_print_cache_sim_params(&sim_res);
 
 	return 0;
 
@@ -215,4 +223,44 @@ void print_params()
 	printf("L2_PREF_M:             %d\n", L2_pref_m);
 
 	printf("trace file:            %s\n", trace_file);
+}
+
+void initialize_cache_sim_params(sim_res_t *sim_res)
+{
+	sim_res->L1_reads = 0;
+	sim_res->L1_read_misses	= 0;
+	sim_res->L1_writes = 0;
+	sim_res->L1_write_misses = 0;
+	sim_res->L1_miss_rate = 0;
+	sim_res->L1_writebacks = 0;
+	sim_res->L1_prefetches = 0;
+
+	sim_res->L2_reads_not_L1_prefetch = 0;
+	sim_res->L2_read_misses_not_L1_prefetch = 0;
+	sim_res->L2_read_L1_prefetch = 0;
+	sim_res->L2_read_miss_L1_prefetch = 0;
+
+	sim_res->L2_writes = 0;
+	sim_res->L2_write_misses = 0;
+	sim_res->L2_miss_rate = 0;
+	sim_res->L2_writebacks = 0;
+	sim_res->L2_prefetches = 0;
+
+	sim_res->tot_mem_traffic = 0;
+}
+
+void calculate_and_print_cache_sim_params(sim_res_t *sim_res)
+{
+
+	sim_res->L1_miss_rate = (float)(sim_res->L1_read_misses + sim_res->L1_write_misses) / (float)(sim_res->L1_reads + sim_res->L1_writes);
+
+	printf("===== Simulation results (raw) =====\n");
+	printf("a. number of L1 reads:                 %d\n", sim_res->L1_reads);
+	printf("b. number of L1 read misses:           %d\n", sim_res->L1_read_misses);
+	printf("c. number of L1 writes:                %d\n", sim_res->L1_writes);
+	printf("d. number of L1 write misses:          %d\n", sim_res->L1_write_misses);
+	printf("e. L1 miss rate:                       %f\n", sim_res->L1_miss_rate);
+	printf("f. number of L1 writebacks:            %d\n", sim_res->L1_writebacks);
+	printf("g. number of L1 prefetches:            %d\n", sim_res->L1_prefetches);
+
 }

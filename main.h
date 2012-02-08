@@ -76,7 +76,7 @@ typedef struct _sim_res_t {
 	int L1_read_misses;
 	int L1_writes;
 	int L1_write_misses;
-	double L1_miss_rate;
+	float L1_miss_rate;
 	int L1_writebacks;
 	int L1_prefetches;
 
@@ -86,7 +86,7 @@ typedef struct _sim_res_t {
 	int L2_read_miss_L1_prefetch;
 	int L2_writes;
 	int L2_write_misses;
-	double L2_miss_rate;
+	float L2_miss_rate;
 	int L2_writebacks;
 	int L2_prefetches;
 

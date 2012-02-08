@@ -5,17 +5,25 @@ rm -f diff.debug.op0 diff.debug.op1 diff.debug.op2 diff.debug.op3
 
 ./sim_cache 16 1024 2 0 0 0 0 0 0 traces/gcc_trace.txt > debug.op0
 diff -iw debug.op0 debug_runs/gcc.debug0.txt > diff.debug.op0
+echo "===================== gcc.debug0 ====================="
+cat diff.debug.op0
 rm -f debug.op0
 
 ./sim_cache 16 1024 1 0 0 0 0 0 0 traces/gcc_trace.txt > debug.op1
 diff -iw debug.op1 debug_runs/gcc.debug1.txt > diff.debug.op1
+echo "===================== gcc.debug1 ====================="
+cat diff.debug.op1
 rm -f debug.op1
 
 ./sim_cache 16 1024 2 0 0 8192 4 0 0 traces/gcc_trace.txt > debug.op2
 diff -iw debug.op2 debug_runs/gcc.debug2.txt > diff.debug.op2
+echo "===================== gcc.debug2 ====================="
+cat diff.debug.op2
 rm -f debug.op2
 
 ./sim_cache 16 1024 1 0 0 8192 4 0 0 traces/gcc_trace.txt > debug.op3
 diff -iw debug.op3 debug_runs/gcc.debug3.txt > diff.debug.op3
+echo "===================== gcc.debug3 ====================="
+cat diff.debug.op3
 rm -f debug.op3
 

@@ -172,6 +172,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	}
 	printf("L%c read : %x (tag %x, index %d)\n", Cache->config.cache_level==L1_LEVEL ? '1': '2', memblock_addr, tag, index);
 
+	if (Cache->config.cache_level == L1_LEVEL)
+		sim_res.L1_reads += 1;
+
 	for (i=0 ; i < Cache->sets[index].assoc ; i++) {
 		if (Cache->sets[index].blocks[i].valid_bit == 1 && Cache->sets[index].blocks[i].tag == tag) {
 			/* Cache hit! */
@@ -212,6 +215,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				done = 1;
 				printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				copy_block(&retblock, &Cache->sets[index].blocks[i]);
+
+				if (Cache->config.cache_level == L1_LEVEL)
+					sim_res.L1_read_misses += 1;
 				break;
 			}
 		}
@@ -235,12 +241,24 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 
 		if (next_Cache) {
 			if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
+
+				if (Cache->config.cache_level == L1_LEVEL)
+					sim_res.L1_writebacks += 1;
+
 				retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
 				retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
 				copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+
 			} else {
+
 				retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
 				copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+
+			}
+		} else {
+			if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
+				if (Cache->config.cache_level == L1_LEVEL)
+					sim_res.L1_writebacks += 1;
 			}
 		}
 
@@ -257,6 +275,8 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 
 		printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
+		if (Cache->config.cache_level == L1_LEVEL)
+			sim_res.L1_read_misses += 1;
 		done = 1;
 	}
 
@@ -299,6 +319,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 		printf("# %d : write %x\n", opnum, mem_addr);
 	}
 	printf("L%c Write : %x  (tag %x, index %d)\n", Cache->config.cache_level==L1_LEVEL ? '1': '2', memblock_addr, tag, index);
+
+	if (Cache->config.cache_level == L1_LEVEL)
+		sim_res.L1_writes += 1;
 
 	for (i=0 ; i < Cache->sets[index].assoc ; i++) {
 		if (Cache->sets[index].blocks[i].valid_bit == 1 && Cache->sets[index].blocks[i].tag == tag) {
@@ -343,6 +366,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 				printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				copy_block(&retblock, &Cache->sets[index].blocks[i]);
+
+				if (Cache->config.cache_level == L1_LEVEL)
+					sim_res.L1_write_misses += 1;
 				break;
 			}
 		}
@@ -366,14 +392,26 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
                 if (next_Cache) {
                         if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
+
+				if (Cache->config.cache_level == L1_LEVEL)
+					sim_res.L1_writebacks += 1;
+
                                 retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
                                 retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
                                 copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+
                         } else {
+
                                 retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
                                 copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
+
                         }
-                }
+                } else {
+			if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
+				if (Cache->config.cache_level == L1_LEVEL)
+					sim_res.L1_writebacks += 1;
+			}
+		}
 
 		Cache->sets[index].blocks[max_lru_counter_val_index].tag = tag;
 		Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr = memblock_addr;
@@ -389,6 +427,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 		printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
+		if (Cache->config.cache_level == L1_LEVEL)
+			sim_res.L1_write_misses += 1;
 		done = 1;
 	}
 

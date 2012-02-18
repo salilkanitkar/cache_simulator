@@ -59,9 +59,22 @@ typedef struct _cache_set_t {
 	cache_block_t *blocks;
 }cache_set_t;
 
+typedef struct _sb_block_t {
+	int valid_bit;
+	unsigned int tag;
+	unsigned int memblock_addr;
+}sb_block_t;
+
+typedef struct _sb_t {
+	int sb_valid_bit;
+	int lru_counter;
+	sb_block_t *sb_buf;
+}sb_t;
+
 typedef struct _cache_t {
 	cache_config_t config;
 	cache_set_t *sets;
+	sb_t *sb;
 }cache_t;
 
 extern cache_t L1_cache;

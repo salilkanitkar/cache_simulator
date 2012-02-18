@@ -52,6 +52,29 @@ void allocate_cache(cache_t *Cache)
 			Cache->sets[i].blocks[j].memblock_addr = 0;
 		}
 	}
+
+	Cache->sb = (sb_t *)malloc(sizeof(sb_t)*Cache->config.pref_n);
+	if (!Cache->sb) {
+		printf("Memory Allocation Failed!\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < Cache->config.pref_n ; i++) {
+		Cache->sb[i].sb_valid_bit = 0;
+		Cache->sb[i].lru_counter = 0;
+		Cache->sb[i].sb_buf = (sb_block_t *)malloc(sizeof(sb_block_t)*Cache->config.pref_m);
+		if (!Cache->sb[i].sb_buf) {
+			printf("Memory Allocation Failed!\n");
+			exit(1);
+		}
+
+		for (j=0 ; j < Cache->config.pref_m ; j++) {
+			Cache->sb[i].sb_buf[j].valid_bit = 0;
+			Cache->sb[i].sb_buf[j].tag = 0;
+			Cache->sb[i].sb_buf[j].memblock_addr = 0;
+		}
+	}
+
 }
 
 void sort_lru_counter(lru_sort_t *lru_sort, int n)
@@ -124,6 +147,28 @@ void print_cache(cache_t *Cache)
 		}
 		printf("\n");
 	}
+
+	int sb_flag = 0;
+
+	if (Cache->config.pref_n && Cache->config.cache_level == L1_LEVEL) {
+		printf("===== L1-SB contents =====");
+			sb_flag = 1;
+	} else if (Cache->config.pref_n && Cache->config.cache_level == L2_LEVEL) {
+		printf("===== L2-SB contents =====");
+		sb_flag = 1;
+	}
+
+	if (sb_flag) {
+		for (i=0 ; i < Cache->config.pref_n ; i++) {
+			if (Cache->sb[i].sb_valid_bit) {
+				printf("\n");
+				for (j=0 ; j < Cache->config.pref_m ; j++) {
+					printf("\t%x", Cache->sb[i].sb_buf[j].memblock_addr);
+				}
+			}
+		}
+	}
+
 }
 
 void copy_block(cache_block_t *dest, cache_block_t *src)

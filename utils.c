@@ -99,6 +99,25 @@ void sort_lru_counter(lru_sort_t *lru_sort, int n)
 	}
 }
 
+void sb_sort_lru_counter(int *tmp1, int *tmp2, int n)
+{
+	int i, j;
+	int x, y;
+
+	for (j=1 ; j < n ; j++) {
+		x = tmp1[j];
+		y = tmp2[j];
+		i = j - 1;
+		while (i>=0 && tmp1[i] > x) {
+			tmp1[i+1] = tmp1[i];
+			tmp2[i+1] = tmp2[i];
+			i -= 1;
+		}
+		tmp1[i+1] = x;
+		tmp2[i+1] = y;
+	}
+}
+
 void print_cache(cache_t *Cache)
 {
 	int i, j, k;
@@ -162,13 +181,21 @@ void print_cache(cache_t *Cache)
 		sb_flag = 1;
 	}
 
+	int *tmp1, *tmp2;
+	tmp1 = (int *)malloc(sizeof(int) * Cache->config.pref_n);
+	tmp2 = (int *)malloc(sizeof(int) * Cache->config.pref_n);
+
 	if (sb_flag) {
 		for (i=0 ; i < Cache->config.pref_n ; i++) {
-			if (Cache->sb[i].sb_valid_bit) {
-				printf("\n");
-				for (j=0 ; j < Cache->config.pref_m ; j++) {
-					printf("\t%8x", Cache->sb[i].sb_buf[j].memblock_addr);
-				}
+			tmp1[i] = Cache->sb[i].lru_counter;
+			tmp2[i] = i;
+		}
+		sb_sort_lru_counter(tmp1, tmp2, Cache->config.pref_n);
+
+		for (i=0 ; i < Cache->config.pref_n ; i++) {
+			printf("\n");
+			for (j=0 ; j < Cache->config.pref_m ; j++) {
+				printf("\t%8x", Cache->sb[tmp2[i]].sb_buf[j].memblock_addr);
 			}
 		}
 		printf("\n");
@@ -209,11 +236,6 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	cache_block_t tmp_retblock;
 	int tmp_memblock_addr=0, tmp_tag=0;
 
-	/*	printf("\n");
-		for (i=0 ; i < Cache->config.pref_n ; i++) {
-			printf("%d ", Cache->sb[i].lru_counter);
-		}
-		printf("\n");*/
 	/* Extract the memory block address */
 	tmp = mem_addr;
 	memblock_addr = (tmp >> Cache->config.num_blockoffset_bits);
@@ -382,7 +404,7 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
 					if (next_Cache) {
 						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
-						copy_block(&Cache->sb[sb_hit].sb_buf[j], &tmp_retblock);
+						copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
 					}
 					Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
 					Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
@@ -573,7 +595,7 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 			printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
 			if (next_Cache) {
 				tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
-				copy_block(&Cache->sb[sb_hit].sb_buf[j], &tmp_retblock);
+				copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
 			}
 			Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
 			Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
@@ -609,14 +631,6 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
         cache_block_t tmp_retblock;
         int tmp_memblock_addr=0, tmp_tag=0;
-
-	//if (opnum == 241) {
-	/*	printf("\n");
-		for (i=0 ; i < Cache->config.pref_n ; i++) {
-			printf("%d ", Cache->sb[i].lru_counter);
-		}
-		printf("\n");*/
-	//}
 
 	/* Extract the memory block address */
 	tmp = mem_addr;
@@ -787,7 +801,7 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
 					if (next_Cache) {
 						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
-						copy_block(&Cache->sb[sb_hit].sb_buf[j], &tmp_retblock);
+						copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
 					}
 					Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
 					Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
@@ -972,8 +986,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
                         for (j = 1 ; j < Cache->config.pref_m ; j++) {
                                 copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &Cache->sb[sb_hit].sb_buf[j]);
-				//Cache->sb[sb_hit].sb_buf[j-1].valid_bit = Cache->sb[sb_hit].sb_buf[j].valid_bit;
-				Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
+				Cache->sb[sb_hit].sb_buf[j-1].valid_bit = Cache->sb[sb_hit].sb_buf[j].valid_bit;
+				//Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
 				Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
 				Cache->sb[sb_hit].sb_buf[j-1].memblock_addr = tmp_memblock_addr;
 
@@ -984,13 +998,14 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 			printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
                         if (next_Cache) {
                                 tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
-                                copy_block(&Cache->sb[sb_hit].sb_buf[j], &tmp_retblock);
+                                copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
                         }
-                        Cache->sb[sb_hit].sb_buf[j].valid_bit = 1;
-                        Cache->sb[sb_hit].sb_buf[j].tag = tmp_tag;
-                        Cache->sb[sb_hit].sb_buf[j].memblock_addr = tmp_memblock_addr;
+                        Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
+                        Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
+                        Cache->sb[sb_hit].sb_buf[j-1].memblock_addr = tmp_memblock_addr;
 
 			printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+
 			done = 1;
                 }
 

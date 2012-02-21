@@ -1,0 +1,33 @@
+===== Simulator configuration =====
+BLOCKSIZE:             16
+L1_SIZE:               1024
+L1_ASSOC:              64
+L1_PREF_N:             0
+L1_PREF_M:             0
+L2_SIZE:               4096
+L2_ASSOC:              256
+L2_PREF_N:             0
+L2_PREF_M:             0
+trace_file:            gcc_trace.txt
+===== L1 contents =====
+Set	0:	4003822 D	  4000136  	  4000135  	  4000134  	  4000133  	  4000132  	  4000131  	  4000130  	  400012f  	  400012e  	  400012d  	  400012c  	  400012b  	  40051a0 D	  4004464 D	  40051a4 D	  4003f1f D	  40051a1 D	  4004824  	  4004295  	  4002f4a  	  40031e8 D	  40031e9 D	  4003147  	  4003825 D	  400358e  	  4003824  	  7b03390 D	  40051a3 D	  4002a62 D	  40051a2 D	  4003140  	  4003144  	  4001f4a  	  4001f29  	  4002f49 D	  400519f D	  40031f8 D	  4003148  	  4001f4e  	  4001f2d  	  4003577  	  4002f71 D	  4002763  	  400275d  	  40051c9 D	  400314b  	  40051ca D	  4001f52  	  4001f30  	  4003e58  	  4003559  	  4003587 D	  400275c  	  40051c8 D	  4003158 D	  400519e D	  400275f  	  4002758  	  4001f51  	  400314a  	  4002762  	  40051ab D	  40051ac D	  
+===== L2 contents =====
+Set	0:	4000136  	  40051aa D	  4000135  	  4000134  	  4000133  	  4000132  	  40051ae D	  4000131  	  40051c7 D	  4000130  	  400012f  	  400012e  	  40051a6 D	  400012d  	  40051a7 D	  400012c  	  40051a5 D	  4004295 D	  40051a9 D	  4002f4a  	  4003305 D	  4004824  	  40051a4 D	  4003147  	  400012b  	  4003822  	  4004464  	  40051a3 D	  4003140  	  4001f4a  	  4001f29  	  4003144  	  4003653 D	  4001f4e  	  40031bf D	  4001f2d  	  40051c6 D	  40051a0 D	  4003148  	  40051c5 D	  400358e  	  4003652 D	  4003577  	  40051c4 D	  40031f8  	  4002a62 D	  40051c3 D	  400519f D	  4003304 D	  4002f49 D	  4002f71  	  40031be D	  40051ca  	  40051c2 D	  4003587  	  4003824 D	  40051c1 D	  4002763  	  4003651 D	  40051c9  	  40051c0 D	  4001f52  	  400314b  	  40051bf D	  4003559  	  4003303 D	  4003158  	  4002762  	  40031bd D	  400275c  	  40051be D	  4001f51  	  4001f30  	  40051bd D	  40051c8  	  4003650 D	  400314a  	  40051bc D	  4003e58  	  40051bb D	  40047f8  	  4003302 D	  40031bc D	  40051ba D	  40047f7  	  40051b9 D	  4003558  	  400364f D	  40051b8 D	  40051b7 D	  40047f6  	  4003301 D	  40031bb D	  40051b6 D	  40047f5  	  40051b5 D	  4003557  	  400364e D	  40051b4 D	  40051b3 D	  40047f4  	  4003300 D	  40031ba D	  40051b2 D	  40047f3  	  40051b1 D	  4003556  	  400364d D	  40051b0 D	  40051af D	  40047f2  	  40032ff D	  40031b9 D	  40047f1  	  4003555  	  400364c D	  40032fe D	  40047f0  	  40031b8 D	  400364b D	  40047ef  	  4003554  	  40051a8 D	  40051ad D	  40047ee  	  40047ed  	  4003145  	  4003579  	  40047ec  	  4003561  	  4003575 D	  40047eb  	  40031ea D	  4003553  	  40047ea  	  4003552  	  400292e  	  4003a22 D	  4002925  	  4005629 D	  4002765  	  4003a21 D	  40047e9  	  4003a20 D	  4002931  	  7b03393 D	  4001f62  	  4002d28 D	  4002928  	  4003f1f  	  4003551  	  40035bc D	  400519d D	  4003f94 D	  400353f D	  400519c D	  4003826 D	  40051ac  	  4002f70 D	  40051ab  	  400519b D	  4004294 D	  400358c D	  400519a D	  4003ece D	  4004296 D	  4005199 D	  40035a9 D	  4003ee4 D	  4005198 D	  40031f5 D	  4003ef1 D	  4005197 D	  400445e D	  40051a2  	  400367a D	  4005196 D	  4001f54  	  4003138 D	  4001f32  	  400357a D	  40051a1  	  4005195 D	  400314d  	  40034fc D	  400275f  	  4003fa5 D	  4002758  	  4005194 D	  4002f40 D	  400275b  	  400376f D	  4005193 D	  4001f2f  	  40031eb D	  40035ac D	  4005192 D	  4003e81 D	  400275d  	  4003f02 D	  4002757  	  4005191 D	  40047e8  	  4002f73 D	  40039e0  	  4005190 D	  40031f4 D	  400365a D	  400518f D	  4003607 D	  4003682 D	  400518e D	  4003e68 D	  400518d D	  400518c D	  4003a3f D	  400365d D	  400518b D	  4003fdb D	  4003a3b D	  400518a D	  400519e  	  4003fbc D	  40035fa D	  4005189 D	  40035bf D	  40031b7 D	  4005188 D	  4003827 D	  40035b8 D	  4005187 D	  4002f6f D	  4005186 D	  4003ebb D	  40037a6 D	  4005185 D	  4003e99 D	  4005184 D	  400446c D	  4003770 D	  4005183 D	  4004461 D	  4005182 D	  400351d D	  400445b D	  4005181 D	  40034fe D	  4003c8d D	  4005180 D	  4003588 D	  400378d D	  400517f D	  4003654 D	  4003ebd D	  400517e D	  40035bd D	  
+===== Simulation results (raw) =====
+a. number of L1 reads:                 63640
+b. number of L1 read misses:           6512
+c. number of L1 writes:                36360
+d. number of L1 write misses:          7658
+e. L1 miss rate:                       0.141700
+f. number of L1 writebacks:            8330
+g. number of L1 prefetches:            0
+h. number of L2 reads that did not originate from L1 prefetches:	14170
+i. number of L2 read misses that did not originate from L1 prefetches:	7031
+j. number of L2 reads that originated from L1 prefetches:		0
+k. number of L2 read misses that originated from L1 prefetches:	0
+l. number of L2 writes:		            8330
+m. number of L2 write misses:          32
+n. L2 miss rate:                     0.496189
+o. number of L2 writebacks:            4615
+p. number of L2 prefetches:	          0
+q. total memory traffic:             11678

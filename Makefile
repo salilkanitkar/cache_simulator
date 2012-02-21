@@ -14,6 +14,10 @@ ifeq ($(DEBUG),1)
 EXTRA_CFLAGS += -DDEBUG_FLAG
 endif
 
+ifeq ($(DEBUG_OP), 1)
+EXTRA_CFLAGS += -DDEBUG_OP
+endif
+
 all: sim_cache
 
 sim_cache: mycompile mylink

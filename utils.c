@@ -249,11 +249,16 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	tmp = mem_addr;
 	tag = (tmp >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
 
-	if (opnum != -1) {
+	if (opnum != -1) { ;
+#ifdef DEBUG_OP
 		printf("----------------------------------------\n");
 		printf("# %d : read %x\n", opnum, mem_addr);
+#endif
 	}
+
+#ifdef DEBUG_OP
 	printf("L%c read : %x (tag %x, index %d)\n", Cache->config.cache_level==L1_LEVEL ? '1': '2', memblock_addr, tag, index);
+#endif
 
 	if (Cache->config.cache_level == L1_LEVEL)
 		sim_res.L1_reads += 1;
@@ -261,7 +266,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	for (i=0 ; i < Cache->config.assoc ; i++) {
 		if (Cache->sets[index].blocks[i].valid_bit == 1 && Cache->sets[index].blocks[i].tag == tag) {
 			/* Cache hit! */
+#ifdef DEBUG_OP
 			printf("L%c hit\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 			old_lru_counter = Cache->sets[index].blocks[i].lru_counter;
 			for (j=0 ; j < Cache->config.assoc ; j++) {
 				if (i != j && Cache->sets[index].blocks[j].valid_bit == 1 && Cache->sets[index].blocks[j].lru_counter < old_lru_counter)
@@ -269,7 +276,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 			}
 			Cache->sets[index].blocks[i].lru_counter = 0;
 			Cache->sets[index].blocks[i].memblock_addr = memblock_addr;
+#ifdef DEBUG_OP
 			printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 			done = 1;
 			copy_block(&retblock, &Cache->sets[index].blocks[i]);
 			return retblock;
@@ -277,12 +286,14 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	}
 
 	if (done == 0) {
+
 		for (i=0 ; i < Cache->config.assoc ; i++) {
 			if (Cache->sets[index].blocks[i].valid_bit == 0) {
 				/* Cache Miss - The first empty block in the required set is found. */
+#ifdef DEBUG_OP
 				printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				printf("L%c victim: none\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
-
+#endif
 				/* Check for a Hit in the first block of all stream buffers. */
 				sb_hit = 0;
 				for (j = 0 ; j < Cache->config.pref_n ; j++) {
@@ -295,7 +306,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				if (sb_hit == 0) { ;
 					if (Cache->config.pref_n) {
 						/* Request has missed in Cache as well as in first entry of all Stream Buffers. */
+#ifdef DEBUG_OP
 						printf("L%c-SB miss, ", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 						sb_max_lru_counter_val = Cache->config.pref_n - 1;
 						sb_max_lru_counter_val_index = 0;
 						for (j=0 ; j < Cache->config.pref_n ; j++) {
@@ -304,9 +317,11 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 								break;
 							}
 						}
+#ifdef DEBUG_OP
 						printf("select LRU buffer #%d, ", sb_max_lru_counter_val_index);
 
 						printf("update LRU\n");
+#endif
 						for (j=0 ; j < Cache->config.pref_n ; j++) {
 							if (j != sb_max_lru_counter_val_index)
 								Cache->sb[j].lru_counter += 1;
@@ -328,8 +343,10 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 						if (i != j && Cache->sets[index].blocks[j].valid_bit == 1)
 							Cache->sets[index].blocks[j].lru_counter += 1;
 					}
-					
+
+#ifdef DEBUG_OP					
 					printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 					copy_block(&retblock, &Cache->sets[index].blocks[i]);
 
 					if (Cache->config.cache_level == L1_LEVEL)
@@ -344,7 +361,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 						for (j=0 ; j < Cache->config.pref_m ; j++) {
 							tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
 							tmp_tag = (tmp_memblock_addr >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
+#ifdef DEBUG_OP
 							printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
+#endif
 							if (next_Cache) {
 								tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
 								copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
@@ -359,8 +378,10 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				} else { ;
 					/* Request missed in Cache but hit in first entry of one of the Stream Buffers. */
 					sb_hit = j;
-	
+
+#ifdef DEBUG_OP	
 					printf("L%c-SB #%d hit, pop first entry, update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit);
+#endif
 					sb_old_lru_counter = Cache->sb[sb_hit].lru_counter;
 					for (j=0 ; j < Cache->config.pref_n ; j++) {
 						if (sb_hit != j && Cache->sb[j].lru_counter < sb_old_lru_counter) 
@@ -379,11 +400,13 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 							Cache->sets[index].blocks[j].lru_counter += 1;
 					}
 					
+#ifdef DEBUG_OP
 					printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 					copy_block(&retblock, &Cache->sets[index].blocks[i]);
 
-					if (Cache->config.cache_level == L1_LEVEL)
-						sim_res.L1_read_misses += 1;
+					/*if (Cache->config.cache_level == L1_LEVEL)
+						sim_res.L1_read_misses += 1;*/
 
 					tmp_memblock_addr = memblock_addr;
 					tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
@@ -401,7 +424,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 						
 					}
 
+#ifdef DEBUG_OP
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
+#endif
 					if (next_Cache) {
 						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
 						copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
@@ -418,6 +443,7 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	}
 
 	if (done == 0) {
+
 		/* No Empty block found in the Set. Also no existing block in the set matches the required block address.
 		*  Therefore, a victim block must be chosen and be replaced.
 		*/
@@ -430,8 +456,10 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 			}
 		}
 
+#ifdef DEBUG_OP
 		printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		printf("L%c victim: %x (tag %x, index %d, %s)\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, Cache->sets[index].blocks[max_lru_counter_val_index].tag, index, Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit ? "dirty": "clean");
+#endif
 
 		if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 		for (j=0 ; j < Cache->config.pref_n ; j++) {
@@ -473,7 +501,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 			if (Cache->config.pref_n) {
 
 				/* Request has missed in Cache as well as in first entry of all Stream Buffers. */
+#ifdef DEBUG_OP
 				printf("L%c-SB miss, ", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 				sb_max_lru_counter_val = Cache->config.pref_n - 1;
 				sb_max_lru_counter_val_index = 0;
 				for (j=0 ; j < Cache->config.pref_n ; j++) {
@@ -482,9 +512,11 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 						break;
 					}
 				}
+#ifdef DEBUG_OP
 				printf("select LRU buffer #%d, ", sb_max_lru_counter_val_index);
 
 				printf("update LRU\n");
+#endif
 				for (j=0 ; j < Cache->config.pref_n ; j++) {
 					if (j != sb_max_lru_counter_val_index)
 						Cache->sb[j].lru_counter += 1;
@@ -508,7 +540,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 					Cache->sets[index].blocks[j].lru_counter += 1;
 			}
 			done = 1;
+#ifdef DEBUG_OP
 			printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 			copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
 
 			if (Cache->config.cache_level == L1_LEVEL)
@@ -523,7 +557,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				for (j=0 ; j < Cache->config.pref_m ; j++) {
 					tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
 					tmp_tag = (tmp_memblock_addr >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
+#ifdef DEBUG_OP
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
+#endif
 					if (next_Cache) {
 						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
 						copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
@@ -536,8 +572,10 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 		} else {;
 			/* Request missed in Cache but hit in first entry of one of the Stream Buffers. */
 			sb_hit = j;
-	
+
+#ifdef DEBUG_OP	
 			printf("L%c-SB #%d hit, pop first entry, update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit);
+#endif
 
 			if (next_Cache) {
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
@@ -570,11 +608,13 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 					Cache->sets[index].blocks[j].lru_counter += 1;
 			}
 			done = 1;
+#ifdef DEBUG_OP
 			printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 			copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
 
-			if (Cache->config.cache_level == L1_LEVEL)
-				sim_res.L1_read_misses += 1;
+			/*if (Cache->config.cache_level == L1_LEVEL)
+				sim_res.L1_read_misses += 1;*/
 
 			tmp_memblock_addr = memblock_addr;
 			tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
@@ -592,7 +632,9 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 						
 			}
 
+#ifdef DEBUG_OP
 			printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
+#endif
 			if (next_Cache) {
 				tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
 				copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
@@ -645,11 +687,15 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 	tmp = mem_addr;
 	tag = (tmp >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
 
-	if (opnum != -1) {
+	if (opnum != -1) { ;
+#ifdef DEBUG_OP
 		printf("----------------------------------------\n");
 		printf("# %d : write %x\n", opnum, mem_addr);
+#endif
 	}
+#ifdef DEBUG_OP
 	printf("L%c Write : %x  (tag %x, index %d)\n", Cache->config.cache_level==L1_LEVEL ? '1': '2', memblock_addr, tag, index);
+#endif
 
 	if (Cache->config.cache_level == L1_LEVEL)
 		sim_res.L1_writes += 1;
@@ -657,7 +703,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 	for (i=0 ; i < Cache->config.assoc ; i++) {
 		if (Cache->sets[index].blocks[i].valid_bit == 1 && Cache->sets[index].blocks[i].tag == tag) {
 			/* Cache hit! */
+#ifdef DEBUG_OP
 			printf("L%c hit\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 			old_lru_counter = Cache->sets[index].blocks[i].lru_counter;
 			for (j=0 ; j < Cache->config.assoc ; j++) {
 				if (i != j && Cache->sets[index].blocks[j].valid_bit == 1 && Cache->sets[index].blocks[j].lru_counter < old_lru_counter) 
@@ -666,8 +714,10 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 			Cache->sets[index].blocks[i].lru_counter = 0;
 			Cache->sets[index].blocks[i].memblock_addr = memblock_addr;
 			Cache->sets[index].blocks[i].dirty_bit = 1;
+#ifdef DEBUG_OP
 			printf("L%c update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 			printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 			done = 1;
 			copy_block(&retblock, &Cache->sets[index].blocks[i]);
 			return retblock;
@@ -678,9 +728,10 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 		for (i=0 ; i < Cache->config.assoc ; i++) {
 			if (Cache->sets[index].blocks[i].valid_bit == 0) {
 				/* Cache Miss - The first empty block in the required set is found. */
+#ifdef DEBUG_OP
 				printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 				printf("L%c victim: none\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
-
+#endif
                                 /* Check for a Hit in the first block of all stream buffers. */
                                 sb_hit = 0;
                                 for (j = 0 ; j < Cache->config.pref_n ; j++) {
@@ -693,7 +744,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                 if (sb_hit == 0) { ;
                                         if (Cache->config.pref_n) {
                                                 /* Request has missed in Cache as well as in first entry of all Stream Buffers. */
+#ifdef DEBUG_OP
                                                 printf("L%c-SB miss, ", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
                                                 sb_max_lru_counter_val = Cache->config.pref_n - 1;
                                                 sb_max_lru_counter_val_index = 0;
                                                 for (j=0 ; j < Cache->config.pref_n ; j++) {
@@ -702,9 +755,11 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 								break;
                                                         }
                                                 }
+#ifdef DEBUG_OP
                                                 printf("select LRU buffer #%d, ", sb_max_lru_counter_val_index);
 
                                                 printf("update LRU\n");
+#endif
                                                 for (j=0 ; j < Cache->config.pref_n ; j++) {
                                                         if (j != sb_max_lru_counter_val_index)
                                                                 Cache->sb[j].lru_counter += 1;
@@ -726,7 +781,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 							Cache->sets[index].blocks[j].lru_counter += 1;
 					}
 					done = 1;
+#ifdef DEBUG_OP
 					printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 					copy_block(&retblock, &Cache->sets[index].blocks[i]);
 
 					if (Cache->config.cache_level == L1_LEVEL)
@@ -741,7 +798,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 						for (j=0 ; j < Cache->config.pref_m ; j++) {
 							tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
 							tmp_tag = (tmp_memblock_addr >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
+#ifdef DEBUG_OP
 							printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
+#endif
 							if (next_Cache) {
 								tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
 								copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
@@ -752,13 +811,16 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                                 }
                                         }
 
+#ifdef DEBUG_OP
 					printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 					break;
 				} else { ;
 					/* Request missed in Cache but hit in first entry of one of the Stream Buffers. */
 					sb_hit = j;
-	
+#ifdef DEBUG_OP	
 					printf("L%c-SB #%d hit, pop first entry, update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit);
+#endif
 					sb_old_lru_counter = Cache->sb[sb_hit].lru_counter;
 					for (j=0 ; j < Cache->config.pref_n ; j++) {
 						if (sb_hit != j && Cache->sb[j].lru_counter < sb_old_lru_counter) 
@@ -777,7 +839,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 							Cache->sets[index].blocks[j].lru_counter += 1;
 					}
 
+#ifdef DEBUG_OP
 					printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_write_misses += 1;
@@ -797,7 +861,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
 					}
 					
+#ifdef DEBUG_OP
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
+#endif
 
 					if (next_Cache) {
 						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
@@ -807,7 +873,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 					Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
 					Cache->sb[sb_hit].sb_buf[j-1].memblock_addr = tmp_memblock_addr;
 					done = 1;
+#ifdef DEBUG_OP
 					printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 					copy_block(&retblock, &Cache->sets[index].blocks[i]);
 					break;
 				}
@@ -829,12 +897,10 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 			}
 		}
 
+#ifdef DEBUG_OP
 		printf("L%c miss\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 		printf("L%c victim: %x (tag %x, index %d, %s)\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, Cache->sets[index].blocks[max_lru_counter_val_index].tag, index, Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit ? "dirty": "clean");
-
-		/*if (opnum == 72095) {
-			printf("aye!\n");
-		}*/
+#endif
 
 		if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 		for (j=0 ; j < Cache->config.pref_n ; j++) {
@@ -876,7 +942,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
                         if (Cache->config.pref_n) {
                                 /* Request has missed in Cache as well as in first entry of all Stream Buffers. */
+#ifdef DEBUG_OP
                                 printf("L%c-SB miss, ", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
                                 sb_max_lru_counter_val = Cache->config.pref_n - 1;
                                 sb_max_lru_counter_val_index = 0;
                                 for (j=0 ; j < Cache->config.pref_n ; j++) {
@@ -885,9 +953,11 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 						break;
                                         }
                                 }
+#ifdef DEBUG_OP
                                 printf("select LRU buffer #%d, ", sb_max_lru_counter_val_index);
 
                                 printf("update LRU\n");
+#endif
                                 for (j=0 ; j < Cache->config.pref_n ; j++) {
                                         if (j != sb_max_lru_counter_val_index)
                                                 Cache->sb[j].lru_counter += 1;
@@ -911,7 +981,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                         Cache->sets[index].blocks[j].lru_counter += 1;
                         }
                         done = 1;
+#ifdef DEBUG_OP
                         printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
                         copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
 
                         if (Cache->config.cache_level == L1_LEVEL)
@@ -926,7 +998,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                 for (j=0 ; j < Cache->config.pref_m ; j++) {
                                         tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
                                         tmp_tag = (tmp_memblock_addr >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
+#ifdef DEBUG_OP
                                         printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
+#endif
                                         if (next_Cache) {
                                                 tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
                                                 copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
@@ -937,12 +1011,16 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                 }
                         }
 
+#ifdef DEBUG_OP
 			printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 		} else { ;
                        /* Request missed in Cache but hit in first entry of one of the Stream Buffers. */
                         sb_hit = j;
 	
+#ifdef DEBUG_OP
 			printf("L%c-SB #%d hit, pop first entry, update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit);
+#endif
 			if (next_Cache) {
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
@@ -974,7 +1052,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                         Cache->sets[index].blocks[j].lru_counter += 1;
                         }
                         done = 1;
+#ifdef DEBUG_OP
                         printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
                         copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
 
                         if (Cache->config.cache_level == L1_LEVEL)
@@ -995,7 +1075,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                                 tmp_tag = (tmp_memblock_addr >> (Cache->config.num_blockoffset_bits+Cache->config.num_index_bits)) & ~(~0 << Cache->config.num_tag_bits);
 			}
 
+#ifdef DEBUG_OP
 			printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
+#endif
                         if (next_Cache) {
                                 tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
                                 copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
@@ -1004,7 +1086,9 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
                         Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
                         Cache->sb[sb_hit].sb_buf[j-1].memblock_addr = tmp_memblock_addr;
 
+#ifdef DEBUG_OP
 			printf("L%c set dirty\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
+#endif
 
 			done = 1;
                 }
@@ -1013,3 +1097,4 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
 	return retblock;
 }
+

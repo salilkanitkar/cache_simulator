@@ -211,7 +211,7 @@ void print_params()
 {
 	printf("===== Simulator configuration =====\n");
 	printf("BLOCKSIZE:             %d\n", blockSize);
-	
+
 	printf("L1_SIZE:               %d\n", L1_size);
 	printf("L1_ASSOC:              %d\n", L1_assoc);
 	printf("L1_PREF_N:             %d\n", L1_pref_n);

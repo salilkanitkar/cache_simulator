@@ -77,15 +77,15 @@ int main(int argc, char *argv[])
 
 		if (mem_op.opcode == 'r') {
 			if (L2_size) {
-				retblock = handle_read_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
+				retblock = handle_read_request(&L1_cache, opnum, mem_op.addr, &L2_cache, 0);
 			} else {
-				retblock = handle_read_request(&L1_cache, opnum, mem_op.addr, NULL);
+				retblock = handle_read_request(&L1_cache, opnum, mem_op.addr, NULL, 0);
 			}
 		} else if (mem_op.opcode == 'w') {
 			if (L2_size) {
-				retblock = handle_write_request(&L1_cache, opnum, mem_op.addr, &L2_cache);
+				retblock = handle_write_request(&L1_cache, opnum, mem_op.addr, &L2_cache, 0);
 			} else {
-				retblock = handle_write_request(&L1_cache, opnum, mem_op.addr, NULL);
+				retblock = handle_write_request(&L1_cache, opnum, mem_op.addr, NULL, 0);
 			}
 		}
 
@@ -254,6 +254,14 @@ void calculate_and_print_cache_sim_params(sim_res_t *sim_res)
 
 	sim_res->L1_miss_rate = (float)(sim_res->L1_read_misses + sim_res->L1_write_misses) / (float)(sim_res->L1_reads + sim_res->L1_writes);
 
+	if (L2_size)
+		sim_res->L2_miss_rate = (float)(sim_res->L2_read_misses_not_L1_prefetch) / (float) (sim_res->L2_reads_not_L1_prefetch);
+
+	if (L2_size) 
+		sim_res->tot_mem_traffic = sim_res->L2_read_misses_not_L1_prefetch + sim_res->L2_read_miss_L1_prefetch + sim_res->L2_write_misses + sim_res->L2_writebacks + sim_res->L2_prefetches;
+	else
+		sim_res->tot_mem_traffic = sim_res->L1_read_misses + sim_res->L1_write_misses + sim_res->L1_writebacks + sim_res->L1_prefetches;
+
 	printf("===== Simulation results (raw) =====\n");
 	printf("a. number of L1 reads:                 %d\n", sim_res->L1_reads);
 	printf("b. number of L1 read misses:           %d\n", sim_res->L1_read_misses);
@@ -262,5 +270,21 @@ void calculate_and_print_cache_sim_params(sim_res_t *sim_res)
 	printf("e. L1 miss rate:                       %f\n", sim_res->L1_miss_rate);
 	printf("f. number of L1 writebacks:            %d\n", sim_res->L1_writebacks);
 	printf("g. number of L1 prefetches:            %d\n", sim_res->L1_prefetches);
+
+	printf("h. number of L2 reads that did not originate from L1 prefetches:        %d\n", sim_res->L2_reads_not_L1_prefetch);
+	printf("i. number of L2 read misses that did not originate from L1 prefetches:  %d\n", sim_res->L2_read_misses_not_L1_prefetch);
+	printf("j. number of L2 reads that originated from L1 prefetches:               %d\n", sim_res->L2_read_L1_prefetch);
+	printf("k. number of L2 read misses that originated from L1 prefetches:         %d\n", sim_res->L2_read_miss_L1_prefetch);
+
+	printf("l. number of L2 writes:                       %d\n", sim_res->L2_writes);
+	printf("m. number of L2 write misses:                 %d\n", sim_res->L2_write_misses);
+	if (L2_size)
+		printf("n. L2 miss rate:                              %f\n", sim_res->L2_miss_rate);
+	else
+		printf("n. L2 miss rate:                              0\n");
+	printf("o. number of L2 writebacks:                   %d\n", sim_res->L2_writebacks);
+	printf("p. number of L2 prefetches:                   %d\n", sim_res->L2_prefetches);
+
+	printf("q. total memory traffic:                      %d\n", sim_res->tot_mem_traffic);
 
 }

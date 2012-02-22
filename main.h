@@ -102,8 +102,8 @@ typedef struct _sim_res_t {
 
 extern sim_res_t sim_res;
 
-extern cache_block_t handle_read_request(cache_t *, int , unsigned int , cache_t *);
-extern cache_block_t handle_write_request(cache_t *, int , unsigned int , cache_t *);
+extern cache_block_t handle_read_request(cache_t *, int , unsigned int , cache_t *, int);
+extern cache_block_t handle_write_request(cache_t *, int , unsigned int , cache_t *, int);
 
 typedef struct _lru_sort_t {
 	int index;

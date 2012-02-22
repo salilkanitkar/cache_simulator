@@ -217,7 +217,7 @@ void copy_block(cache_block_t *dest, cache_block_t *src)
  * mem_addr: The address at which the read request is made.
  * cache_t *next_Cache: If this argument is NULL, it means the next level is Main Memory, otherwise the L2_cache is passed.
  * */
-cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache)
+cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache, int is_prefetch)
 {
 	unsigned int tag;
 	unsigned int index;
@@ -285,6 +285,7 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 		}
 	}
 
+
 	if (done == 0) {
 
 		for (i=0 ; i < Cache->config.assoc ; i++) {
@@ -330,7 +331,8 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 
 					/* Fetch the cache block from next level of memory hierarchy. */
 					if (next_Cache) {
-						retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+						sim_res.L2_reads_not_L1_prefetch += 1;
+						retblock = handle_read_request(next_Cache, -1, mem_addr, NULL, 0);
 						copy_block(&Cache->sets[index].blocks[i], &retblock);
 					}
 
@@ -364,8 +366,14 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 #ifdef DEBUG_OP
 							printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
 #endif
+							if (Cache->config.cache_level == L1_LEVEL)
+								sim_res.L1_prefetches += 1;
+							else if (Cache->config.cache_level == L2_LEVEL)
+								sim_res.L2_prefetches += 1;
+
 							if (next_Cache) {
-								tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+								sim_res.L2_read_L1_prefetch += 1;
+								tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
 								copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
 							}
 	                                	        Cache->sb[sb_max_lru_counter_val_index].sb_buf[j].valid_bit = 1;
@@ -373,7 +381,14 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	                                        	Cache->sb[sb_max_lru_counter_val_index].sb_buf[j].memblock_addr = tmp_memblock_addr;
 						}
 					}
+
+					if (is_prefetch == 1 && Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_read_miss_L1_prefetch += 1;
+					else if (is_prefetch == 0 && Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_read_misses_not_L1_prefetch += 1;
+
 					done = 1;
+
 					break;
 				} else { ;
 					/* Request missed in Cache but hit in first entry of one of the Stream Buffers. */
@@ -427,13 +442,25 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 #ifdef DEBUG_OP
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
 #endif
+
+					if (Cache->config.cache_level == L1_LEVEL)
+						sim_res.L1_prefetches += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_prefetches += 1;
+
 					if (next_Cache) {
-						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+						sim_res.L2_read_L1_prefetch += 1;
+						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
 						copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
 					}
 					Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
 					Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
 					Cache->sb[sb_hit].sb_buf[j-1].memblock_addr = tmp_memblock_addr;
+
+					/*if (is_prefetch == 1 && Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_read_miss_L1_prefetch += 1;
+					else if (is_prefetch == 0 && Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_read_misses_not_L1_prefetch += 1;*/
 
 					done = 1;
 					break;
@@ -489,12 +516,14 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
-					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
+					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL, 0);
 				}
 			} else {
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_writebacks += 1;
 				}
 			}
 
@@ -525,7 +554,8 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 
 			/* Fetch the cache block from next level of memory hierarchy. */
 			if (next_Cache) {
-				retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+				sim_res.L2_reads_not_L1_prefetch += 1;
+				retblock = handle_read_request(next_Cache, -1, mem_addr, NULL, 0);
 				copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
 			}
 
@@ -539,6 +569,12 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				if (max_lru_counter_val_index != j && Cache->sets[index].blocks[j].valid_bit == 1)
 					Cache->sets[index].blocks[j].lru_counter += 1;
 			}
+
+			if (is_prefetch == 1 && Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_read_miss_L1_prefetch += 1;
+			else if (is_prefetch == 0 && Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_read_misses_not_L1_prefetch += 1;
+
 			done = 1;
 #ifdef DEBUG_OP
 			printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
@@ -560,8 +596,14 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 #ifdef DEBUG_OP
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
 #endif
+					if (Cache->config.cache_level == L1_LEVEL)
+						sim_res.L1_prefetches += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_prefetches += 1;
+
 					if (next_Cache) {
-						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+						sim_res.L2_read_L1_prefetch += 1;
+						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
 						copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
 					}
                                	        Cache->sb[sb_max_lru_counter_val_index].sb_buf[j].valid_bit = 1;
@@ -581,12 +623,14 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
-					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
+					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL, 0);
 				}
 			} else {
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_writebacks += 1;
 				}
 			}
 
@@ -607,7 +651,8 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 				if (max_lru_counter_val_index != j && Cache->sets[index].blocks[j].valid_bit == 1)
 					Cache->sets[index].blocks[j].lru_counter += 1;
 			}
-			done = 1;
+
+
 #ifdef DEBUG_OP
 			printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 #endif
@@ -635,14 +680,25 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 #ifdef DEBUG_OP
 			printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
 #endif
+			if (Cache->config.cache_level == L1_LEVEL)
+				sim_res.L1_prefetches += 1;
+			else if (Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_prefetches += 1;
+
 			if (next_Cache) {
-				tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+				sim_res.L2_read_L1_prefetch += 1;
+				tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
 				copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
 			}
 			Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
 			Cache->sb[sb_hit].sb_buf[j-1].tag = tmp_tag;
 			Cache->sb[sb_hit].sb_buf[j-1].memblock_addr = tmp_memblock_addr;
 		
+			/*if (is_prefetch == 1 && Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_read_miss_L1_prefetch += 1;
+			else if (is_prefetch == 0 && Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_read_misses_not_L1_prefetch += 1;*/
+
 			done = 1;
 		}
 	}
@@ -655,7 +711,7 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
  * mem_addr: The address at which the write request is made.
  * cache_t *next_Cache: If this argument is NULL, it means the next level is Main Memory, otherwise the L2_cache is passed.
  * */
-cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache)
+cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_addr, cache_t *next_Cache, int prefetch)
 {
 	unsigned int tag;
 	unsigned int index;
@@ -699,6 +755,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
 	if (Cache->config.cache_level == L1_LEVEL)
 		sim_res.L1_writes += 1;
+	else if (Cache->config.cache_level == L2_LEVEL)
+		sim_res.L2_writes += 1;
 
 	for (i=0 ; i < Cache->config.assoc ; i++) {
 		if (Cache->sets[index].blocks[i].valid_bit == 1 && Cache->sets[index].blocks[i].tag == tag) {
@@ -768,7 +826,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
 					/* Fetch the block from the next level of the memory hierarchy. */
 	                                if (next_Cache) {
-        	                                retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+						sim_res.L2_reads_not_L1_prefetch += 1;
+        	                                retblock = handle_read_request(next_Cache, -1, mem_addr, NULL, 0);
                 	                        copy_block(&Cache->sets[index].blocks[i], &retblock);
                         	        }
 					Cache->sets[index].blocks[i].valid_bit = 1;
@@ -788,6 +847,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_write_misses += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_write_misses += 1;
 
 					if (Cache->config.pref_n) {
 						/* Prefetch X+1 to X+M blocks in LRU selected Stream Buffer. */
@@ -801,8 +862,14 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 #ifdef DEBUG_OP
 							printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
 #endif
+							if (Cache->config.cache_level == L1_LEVEL)
+								sim_res.L1_prefetches += 1;
+							else if (Cache->config.cache_level == L2_LEVEL)
+								sim_res.L2_prefetches += 1;
+
 							if (next_Cache) {
-								tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+								sim_res.L2_read_L1_prefetch += 1;
+								tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
 								copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
 							}
 							Cache->sb[sb_max_lru_counter_val_index].sb_buf[j].valid_bit = 1;
@@ -843,8 +910,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 					printf("L%c Update LRU\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2');
 #endif
 
-					if (Cache->config.cache_level == L1_LEVEL)
-						sim_res.L1_write_misses += 1;
+					/* if (Cache->config.cache_level == L1_LEVEL)
+						sim_res.L1_write_misses += 1; */
 
 					tmp_memblock_addr = memblock_addr;
 					tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
@@ -865,8 +932,14 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 					printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
 #endif
 
+					if (Cache->config.cache_level == L1_LEVEL)
+						sim_res.L1_prefetches += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_prefetches += 1;
+
 					if (next_Cache) {
-						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+						sim_res.L2_read_L1_prefetch += 1;
+						tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
 						copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
 					}
 					Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;
@@ -931,12 +1004,14 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
 
-					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
+					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL, 0);
 				}
 			} else {
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_writebacks += 1;
 				}
 			}
 
@@ -966,7 +1041,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
                         /* Fetch the cache block from next level of memory hierarchy. */
                         if (next_Cache) {
-                                retblock = handle_read_request(next_Cache, -1, mem_addr, NULL);
+				sim_res.L2_reads_not_L1_prefetch += 1;
+                                retblock = handle_read_request(next_Cache, -1, mem_addr, NULL, 0);
                                 copy_block(&Cache->sets[index].blocks[max_lru_counter_val_index], &retblock);
                         }
 
@@ -988,6 +1064,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 
                         if (Cache->config.cache_level == L1_LEVEL)
                                 sim_res.L1_write_misses += 1;
+			else if (Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_write_misses += 1;
 
                         if (Cache->config.pref_n) {
                                 /* Prefetch X+1 to X+M blocks in LRU selected Stream Buffer. */
@@ -1001,8 +1079,14 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 #ifdef DEBUG_OP
                                         printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_max_lru_counter_val_index, tmp_memblock_addr);
 #endif
+					if (Cache->config.cache_level == L1_LEVEL)
+						sim_res.L1_prefetches += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_prefetches += 1;
+
                                         if (next_Cache) {
-                                                tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+						sim_res.L2_read_L1_prefetch += 1;
+                                                tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
                                                 copy_block(&Cache->sb[sb_max_lru_counter_val_index].sb_buf[j], &tmp_retblock);
                                         }
                                         Cache->sb[sb_max_lru_counter_val_index].sb_buf[j].valid_bit = 1;
@@ -1025,12 +1109,14 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
-					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL);
+					retblock = handle_write_request(next_Cache, -1, Cache->sets[index].blocks[max_lru_counter_val_index].memblock_addr, NULL, 0);
 				}
 			} else {
 				if (Cache->sets[index].blocks[max_lru_counter_val_index].dirty_bit) {
 					if (Cache->config.cache_level == L1_LEVEL)
 						sim_res.L1_writebacks += 1;
+					else if (Cache->config.cache_level == L2_LEVEL)
+						sim_res.L2_writebacks += 1;
 				}
 			}
 
@@ -1057,8 +1143,8 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 #endif
                         copy_block(&retblock, &Cache->sets[index].blocks[max_lru_counter_val_index]);
 
-                        if (Cache->config.cache_level == L1_LEVEL)
-                                sim_res.L1_write_misses += 1;
+                        /* if (Cache->config.cache_level == L1_LEVEL)
+                                sim_res.L1_write_misses += 1; */
 
 			tmp_memblock_addr = memblock_addr;
 			tmp_memblock_addr = (((tmp_memblock_addr >> Cache->config.num_blockoffset_bits) + 0x1 ) << Cache->config.num_blockoffset_bits);
@@ -1078,8 +1164,15 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 #ifdef DEBUG_OP
 			printf("L%c-SB #%d prefetch %x\n", Cache->config.cache_level==L1_LEVEL ? '1' : '2', sb_hit, tmp_memblock_addr);
 #endif
+
+			if (Cache->config.cache_level == L1_LEVEL)
+				sim_res.L1_prefetches += 1;
+			else if (Cache->config.cache_level == L2_LEVEL)
+				sim_res.L2_prefetches += 1;
+
                         if (next_Cache) {
-                                tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL);
+				sim_res.L2_read_L1_prefetch += 1;
+                                tmp_retblock = handle_read_request(next_Cache, -1, tmp_memblock_addr, NULL, 1);
                                 copy_block(&Cache->sb[sb_hit].sb_buf[j-1], &tmp_retblock);
                         }
                         Cache->sb[sb_hit].sb_buf[j-1].valid_bit = 1;

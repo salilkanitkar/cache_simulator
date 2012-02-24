@@ -4,8 +4,8 @@ OBJS = $(SRCS:.c=.o)
 
 CFLAGS = -Wall -Werror -I.
 LDFLAGS = -L.
-EXTRA_CFLAGS = -g
-# OPT_CFLAGS = -O3
+# EXTRA_CFLAGS = -g
+OPT_CFLAGS = -O3
 DEBUG=0
 
 CC = gcc
@@ -32,6 +32,7 @@ mylink: $(OBJS) $(INC)
 
 clean:
 	rm -f *.o sim_cache
+	rm -f diff.* points.*
 
 clobber:
 	rm -f *.o

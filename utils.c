@@ -157,6 +157,10 @@ void print_cache(cache_t *Cache)
 				lru_sort[k].index = j;
 				lru_sort[k].lru_counter = Cache->sets[i].blocks[j].lru_counter;
 				k += 1;
+			} else {
+				lru_sort[k].index = j;
+				lru_sort[k].lru_counter = -1;
+				k += 1;
 			}
 		}
 		sort_lru_counter(lru_sort, k);
@@ -165,7 +169,11 @@ void print_cache(cache_t *Cache)
 #ifdef DEBUG_FLAG
 			printf("    %c", Cache->sets[i].blocks[j].valid_bit ? 'V' : 'I');
 #endif
-			printf("%8x %c", Cache->sets[i].blocks[lru_sort[j].index].tag, Cache->sets[i].blocks[lru_sort[j].index].dirty_bit ? 'D' : ' ');
+			if (Cache->sets[i].blocks[j].valid_bit)
+				printf("%8x %c", Cache->sets[i].blocks[lru_sort[j].index].tag, Cache->sets[i].blocks[lru_sort[j].index].dirty_bit ? 'D' : ' ');
+			else
+				printf("--------  ");
+
 			printf("\t");
 		}
 		printf("\n");
@@ -229,7 +237,7 @@ cache_block_t handle_read_request(cache_t *Cache, int opnum, unsigned int mem_ad
 	int max_lru_counter_val, max_lru_counter_val_index;
 
 	int sb_hit=0, sb_old_lru_counter=0;
-	int sb_max_lru_counter_val, sb_max_lru_counter_val_index;
+	int sb_max_lru_counter_val=0, sb_max_lru_counter_val_index=0;
 
 	cache_block_t retblock;
 
@@ -723,7 +731,7 @@ cache_block_t handle_write_request(cache_t *Cache, int opnum, unsigned int mem_a
 	int max_lru_counter_val, max_lru_counter_val_index;
 
 	int sb_hit=0, sb_old_lru_counter=0;
-        int sb_max_lru_counter_val, sb_max_lru_counter_val_index;
+        int sb_max_lru_counter_val=0, sb_max_lru_counter_val_index=0;
 
 	cache_block_t retblock;
 

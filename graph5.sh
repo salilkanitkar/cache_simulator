@@ -37,7 +37,19 @@ for (( j=15 ; j<=20 ; j++)) ; do
 			./sim_cache $BLOCKSIZE $L1_SIZE $L1_ASSOC $L1_PREF_N $L1_PREF_M $L2_SIZE $L2_ASSOC $L2_PREF_N $L2_PREF_M $tracefile > output.$i
 			op=`cat output.$i | grep "L1 miss rate"`
 			L1_miss_rate=`echo $op | awk '{print $5}'`
-			echo "$i $L1_miss_rate" >> points.5
+			op=`cat output.$i | grep "L1 reads"`
+			L1_reads=`echo $op | awk '{print $6}'`
+			op=`cat output.$i | grep "L1 writes"`
+			L1_writes=`echo $op | awk '{print $6}'`
+			op=`cat output.$i | grep "L1 read misses"`
+			L1_read_misses=`echo $op | awk '{print $7}'`
+			op=`cat output.$i | grep "L1 write misses"`
+			L1_write_misses=`echo $op | awk '{print $7}'`
+			op=`cat output.$i | grep "L2 reads that did not originate from L1 prefetches"`
+			L2_reads_not_L1_prefetch=`echo $op | awk '{print $13}'`
+			op=`cat output.$i | grep "L2 read misses that did not originate from L1 prefetches"`
+			L2_read_misses_not_L1_prefetch=`echo $op | awk '{print $14}'`
+			echo "$i $L1_miss_rate $L1_reads $L1_writes $L1_read_misses $L1_write_misses $L2_reads_not_L1_prefetch $L2_read_misses_not_L1_prefetch" >> points.5
 			rm -f output.$i
 		fi
 	done

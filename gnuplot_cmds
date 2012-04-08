@@ -1,0 +1,77 @@
+1)
+set multiplot
+set title "Graph #1"
+set xlabel "log2(CACHE_SIZE)"
+set ylabel "L1 Miss Rate"
+set xrange [9:21]
+set yrange [0:0.25]
+set style line 5 lw 1 lc rgb "blue"
+plot "plot.1" using 1:2 lw 2 lc rgb "red" title "Direct-Mapped" with lines
+plot "plot.1" using 1:3 lw 2 lc rgb "blue" title "2-Way Set Associative" with lines
+plot "plot.1" using 1:4 lw 2 lc rgb "green" title "4-Way Set Associative" with lines
+plot "plot.1" using 1:5 lw 2 lc rgb "orange" title "8-Way Set Associative" with lines
+plot "plot.1" using 1:6 lw 2 lc rgb "yellow" title "Fully Associative" with lines
+unset multiplot
+
+2)
+set multiplot
+set title "Graph #2"
+set xlabel "log2(CACHE_SIZE)"
+set ylabel "AAT"
+set xrange [9:21]
+set yrange [0:5.00000]
+set style line 5 lw 1 lc rgb "blue"
+plot "plot.2-1" using 1:2 lw 2 lc rgb "red" title "Direct-Mapped" with lines
+plot "plot.2-1" using 1:3 lw 2 lc rgb "blue" title "2-Way Set Associative" with lines
+plot "plot.2-1" using 1:4 lw 2 lc rgb "green" title "4-Way Set Associative" with lines
+plot "plot.2-1" using 1:5 lw 2 lc rgb "orange" title "8-Way Set Associative" with lines
+plot "plot.2-1" using 1:6 lw 2 lc rgb "yellow" title "Fully Associative" with lines
+unset multiplot
+
+3)
+set multiplot
+set title "Graph #3"
+set xlabel "log2(CACHE_SIZE)"
+set ylabel "AAT"
+set xrange [9:21]
+set yrange [0:1.200000]
+set style line 5 lw 1 lc rgb "blue"
+plot "plot.3" using 1:2 lw 2 lc rgb "red" title "Direct-Mapped" with lines
+plot "plot.3" using 1:3 lw 2 lc rgb "blue" title "2-Way Set Associative" with lines
+plot "plot.3" using 1:4 lw 2 lc rgb "green" title "4-Way Set Associative" with lines
+plot "plot.3" using 1:5 lw 2 lc rgb "orange" title "8-Way Set Associative" with lines
+plot "plot.3" using 1:6 lw 2 lc rgb "yellow" title "Fully Associative" with lines
+unset multiplot
+
+4)
+set multiplot
+set title "Graph #4"
+set xlabel "log2(BLOCKSIZE)"
+set ylabel "L1 Miss Rate"
+set xrange [3:8]
+set yrange [0:0.250000]
+set style line 5 lw 1 lc rgb "blue"
+plot "plot.4" using 1:2 lw 2 lc rgb "red" title "1k L1" with lines
+plot "plot.4" using 1:3 lw 2 lc rgb "blue" title "2k L1" with lines
+plot "plot.4" using 1:4 lw 2 lc rgb "green" title "4k L1" with lines
+plot "plot.4" using 1:5 lw 2 lc rgb "orange" title "8k L1" with lines
+plot "plot.4" using 1:6 lw 2 lc rgb "yellow" title "16k L1" with lines
+plot "plot.4" using 1:7 lw 2 lc rgb "black" title "32k L1" with lines
+unset multiplot
+
+5)
+set multiplot
+set title "Graph #5"
+set xlabel "log2(L1_SIZE)"
+set ylabel "AAT"
+set xrange [9:21]
+set yrange [0:1.20000000]
+set style line 5 lw 1 lc rgb "blue"
+plot "plot.5-1" using 1:2 lw 2 lc rgb "red" title "L2_SIZE=32768" with lines
+plot "plot.5-1" using 1:3 lw 2 lc rgb "blue" title "L2_SIZE=65536" with lines
+plot "plot.5-1" using 1:4 lw 2 lc rgb "green" title "L2_SIZE=131072" with lines
+plot "plot.5-1" using 1:5 lw 2 lc rgb "orange" title "L2_SIZE=262144" with lines
+plot "plot.5-1" using 1:6 lw 2 lc rgb "yellow" title "L2_SIZE=524288" with lines
+plot "plot.5-1" using 1:7 lw 2 lc rgb "black" title "L2_SIZE=1048576" with lines
+unset multiplot
+
